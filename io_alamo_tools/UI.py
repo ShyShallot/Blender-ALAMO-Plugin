@@ -96,18 +96,26 @@ def skeletonEnumCallback(scene, context):
 
     return armatures
 
-def create_child_bones_for_armature(armature, include_string,proxyName):
+def create_child_bones_for_armature(armature, include_string,exlude_strings,proxyName):
     # Check if the given armature is valid
     if armature and armature.type == 'ARMATURE':
-        print(armature)
         # Get the current time (used to track bone creation time)
         current_time = time.time()
         
         bones_list = frozenset(armature.data.edit_bones)
         
-        print(bones_list)
         # Iterate through all bones in the armature
         for bone in bones_list:
+            skip = False
+            if exlude_strings != False:
+                for exlude in exlude_strings:
+                    print(exlude)
+                    print(bone.name)
+                    if exlude in bone.name:
+                        skip = True
+                        break
+                if skip:
+                    continue
             if include_string in bone.name:
                 # Calculate the direction vector of the bone
                 bone_direction = (bone.tail - bone.head).normalized()
@@ -137,6 +145,10 @@ def create_child_bones_for_armature(armature, include_string,proxyName):
         print("The provided object is not a valid armature.")
         return False
 
+def split_exlude_string(inputString):
+    if inputString == "" or inputString == " ":
+        return False
+    return [value.strip() for value in inputString.split(",")]
 
 # Operators #######################################################################################
 class keyframeProxySet(bpy.types.Operator):
@@ -323,7 +335,7 @@ class CreateProxyBones(bpy.types.Operator):
 
         bpy.context.view_layer.objects.active = armature
         utils.setModeToEdit()
-        create_child_bones_for_armature(armature, obj.IncludeString, obj.ProxyNameToSet)
+        create_child_bones_for_armature(armature, obj.IncludeString,split_exlude_string(obj.ExludeStrings), obj.ProxyNameToSet)
 
         utils.setModeToObject()
         bpy.context.view_layer.objects.active = obj
@@ -424,6 +436,7 @@ class ALAMO_PT_ObjectPanel(bpy.types.Panel):
         col.operator("alamo.create_constraint_bone")
         if obj is not None and obj.type == "ARMATURE":
             col.prop(obj, "IncludeString", text="Include String")
+            col.prop(obj, "ExludeStrings", text="Exlude Strings (Ex: Hangar, Turret)")
             col.prop(obj, "ProxyNameToSet", text="Proxy Name")
             col.operator("alamo.create_proxy_bones")
 
@@ -678,6 +691,7 @@ def register():
     bpy.types.Object.Hidden = BoolProperty()
     bpy.types.Object.IncludeString = StringProperty(name="")
     bpy.types.Object.ProxyNameToSet = StringProperty(name="")
+    bpy.types.Object.ExludeStrings = StringProperty(name="")
 
 
 def unregister():
