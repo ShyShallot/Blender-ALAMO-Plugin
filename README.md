@@ -3,6 +3,12 @@
 A plugin that allow reading and writing of ALAMO-Engine model(.alo) and animation(.ala) files.  
 Specifically designed to work with Empire at War: Forces of Corruption.
 
+# ShyShallot's Modification's to this plugin
+Works with 3.6
+Added Support for automatic creation of proxy bones to make the process quicker mainly for damage_emitters for proxies
+![image](https://github.com/ShyShallot/Blender-ALAMO-Plugin/assets/29870626/268bcbef-6a9c-4fe5-9984-3a9a517ebe21)
+
+
 # Getting Started 
 
 Tested with Blender 2.82. Download the repository. Put the "io_alamo_tools" folder into "Blender 2.82/2.82/scripts/addons/".  
