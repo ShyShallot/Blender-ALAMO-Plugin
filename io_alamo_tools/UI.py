@@ -125,6 +125,7 @@ def create_child_bones_for_armature(armature, include_string,proxyName):
                 # Make the new bone a child of the current bone
                 new_bone.parent = bone
                 new_bone.ProxyName = proxyName
+                new_bone.EnableProxy = True
 
 
                 time.sleep(0.05)
