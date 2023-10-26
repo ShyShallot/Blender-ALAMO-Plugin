@@ -9,6 +9,7 @@ from . import validation
 from . import utils
 import mathutils
 import bpy
+import time
 
 
 # UI Utilities ####################################################################################
@@ -94,6 +95,46 @@ def skeletonEnumCallback(scene, context):
             counter += 1
 
     return armatures
+
+def create_child_bones_for_armature(armature, include_string,proxyName):
+    # Check if the given armature is valid
+    if armature and armature.type == 'ARMATURE':
+        print(armature)
+        # Get the current time (used to track bone creation time)
+        current_time = time.time()
+        
+        bones_list = frozenset(armature.data.edit_bones)
+        
+        print(bones_list)
+        # Iterate through all bones in the armature
+        for bone in bones_list:
+            if include_string in bone.name:
+                # Calculate the direction vector of the bone
+                bone_direction = (bone.tail - bone.head).normalized()
+
+                # Calculate the new bone's head and tail locations
+                new_bone_head = bone.head + 1.0 * bone_direction
+                new_bone_tail = new_bone_head + (bone.tail - bone.head)
+
+                # Create a new bone in front of the current bone
+                new_bone_name = bone.name + "_EMIT"
+                new_bone = armature.data.edit_bones.new(new_bone_name)
+                new_bone.head = new_bone_head
+                new_bone.tail = new_bone_tail
+
+                # Make the new bone a child of the current bone
+                new_bone.parent = bone
+                new_bone.ProxyName = proxyName
+
+
+                time.sleep(0.05)
+
+        final_time = time.time() - current_time
+        print(f"Finished in {final_time} seconds")
+        return True
+    else:
+        print("The provided object is not a valid armature.")
+        return False
 
 
 # Operators #######################################################################################
@@ -253,6 +294,39 @@ class CreateConstraintBone(bpy.types.Operator):
         utils.setModeToObject()
         bpy.context.view_layer.objects.active = obj
         return {"FINISHED"}
+    
+class CreateProxyBones(bpy.types.Operator):
+    bl_idname = "alamo.create_proxy_bones"
+    bl_label = "Create Proxy Bones"
+    bl_description = "Adds child bones to all bones of the selected armature with the include string with a proxy"
+
+    @classmethod
+    def poll(cls, context):
+        obj = bpy.context.object
+        if (
+            obj is not None
+            and bpy.context.mode == "OBJECT"
+            and (not obj.ProxyNameToSet.isspace() and 
+                 not obj.ProxyNameToSet == "")
+        ):
+            armature = utils.findArmature()
+            if armature is not None:
+                return True
+            else:
+                return False
+        return False
+
+    def execute(self, context):
+        obj = bpy.context.view_layer.objects.active
+        armature = utils.findArmature()
+
+        bpy.context.view_layer.objects.active = armature
+        utils.setModeToEdit()
+        create_child_bones_for_armature(armature, obj.IncludeString, obj.ProxyNameToSet)
+
+        utils.setModeToObject()
+        bpy.context.view_layer.objects.active = obj
+        return {"FINISHED"}
 
 
 class CopyProxyNameToSelected(bpy.types.Operator):
@@ -347,6 +421,10 @@ class ALAMO_PT_ObjectPanel(bpy.types.Panel):
         col = layout.column()
         col.scale_y = 1.25
         col.operator("alamo.create_constraint_bone")
+        if obj is not None and obj.type == "ARMATURE":
+            col.prop(obj, "IncludeString", text="Include String")
+            col.prop(obj, "ProxyNameToSet", text="Proxy Name")
+            col.operator("alamo.create_proxy_bones")
 
 
 class ALAMO_PT_EditBonePanel(bpy.types.Panel):
@@ -563,6 +641,7 @@ classes = (
     ValidateFileButton,
     CreateConstraintBone,
     createConstraintBoneButton,
+    CreateProxyBones,
     CopyProxyNameToSelected,
     keyframeProxySet,
     keyframeProxyDelete,
@@ -596,6 +675,8 @@ def register():
 
     bpy.types.Object.HasCollision = BoolProperty()
     bpy.types.Object.Hidden = BoolProperty()
+    bpy.types.Object.IncludeString = StringProperty(name="")
+    bpy.types.Object.ProxyNameToSet = StringProperty(name="")
 
 
 def unregister():
